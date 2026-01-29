@@ -8,9 +8,10 @@ let isIpSyncing = false;
 
 // Custom Red Icon - Google Maps Style
 // Custom Red Icon - Google Maps Style
+// Custom Red Icon - Google Maps Style
 const redIcon = new L.Icon({
-    iconUrl: '../../icons/marker-icon-2x-red.png', // Local asset
-    shadowUrl: '../../icons/marker-shadow.png',     // Local asset
+    iconUrl: '/icons/marker-icon-2x-red.png', // Local asset (Root-relative)
+    shadowUrl: '/icons/marker-shadow.png',     // Local asset (Root-relative)
     iconSize: [25, 41],
     iconAnchor: [12, 41],
     popupAnchor: [1, -34],
