@@ -35,7 +35,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             chrome.storage.local.set({ coords: currentCoords });
             console.log('StealthGeo: Updated coords with timezone:', currentCoords);
 
-            if (spoofingActive) applySpoofingToExpectedTabs();
+            // Force Re-Spoof: Stop then Start
+            if (spoofingActive) {
+                console.log('StealthGeo: Modifying location active. Restarting spoof session...');
+                detachFromAllTabs().then(() => {
+                    // Small delay to ensure browser clears state
+                    setTimeout(() => {
+                        applySpoofingToExpectedTabs();
+                    }, 100);
+                });
+            }
         });
 
         sendResponse({ status: 'Updating' });
@@ -234,34 +243,45 @@ function setGeolocation(target) {
 }
 
 function detachFromAllTabs() {
-    // Only detach tabs we know we attached to, or clean up all if forceful
-    chrome.debugger.getTargets((targets) => {
-        targets.forEach(target => {
-            // Check if we are tracking this tab or if it's generally attached (fallback)
-            // Ideally we only detach what we own to avoid fighting other extensions
-            if (target.attached || attachedTabIds.has(target.id)) {
-                const debugTarget = { targetId: target.id };
-                // Explicitly clear override before detaching to prevent "stuck" location
-                // We wrap this in layer of error checking to suppress "not attached" errors
-                chrome.debugger.sendCommand(debugTarget, "Emulation.clearGeolocationOverride", {}, () => {
-                    if (chrome.runtime.lastError) { /* ignore */ }
-                    // Also clear timezone
-                    chrome.debugger.sendCommand(debugTarget, "Emulation.setTimezoneOverride", { timezoneId: "" }, () => {
-                        if (chrome.runtime.lastError) { /* ignore */ }
-                        chrome.debugger.detach(debugTarget, () => {
-                            if (chrome.runtime.lastError) {
-                                // Ignore "Debugger is not attached" errors specifically
-                            } else {
-                                attachedTabIds.delete(debugTarget.targetId);
-                            }
+    return new Promise((resolve) => {
+        // Only detach tabs we know we attached to, or clean up all if forceful
+        chrome.debugger.getTargets((targets) => {
+            const detachPromises = [];
+
+            targets.forEach(target => {
+                // Check if we are tracking this tab or if it's generally attached (fallback)
+                if (target.attached || attachedTabIds.has(target.id)) {
+                    const debugTarget = { targetId: target.id };
+
+                    const p = new Promise(resolveCmd => {
+                        // Explicitly clear override before detaching
+                        chrome.debugger.sendCommand(debugTarget, "Emulation.clearGeolocationOverride", {}, () => {
+                            if (chrome.runtime.lastError) { /* ignore */ }
+                            // Also clear timezone
+                            chrome.debugger.sendCommand(debugTarget, "Emulation.setTimezoneOverride", { timezoneId: "" }, () => {
+                                if (chrome.runtime.lastError) { /* ignore */ }
+                                chrome.debugger.detach(debugTarget, () => {
+                                    if (chrome.runtime.lastError) {
+                                        // Ignore "Debugger is not attached" errors specifically
+                                    } else {
+                                        attachedTabIds.delete(debugTarget.targetId);
+                                    }
+                                    resolveCmd();
+                                });
+                            });
                         });
                     });
-                });
-            }
+                    detachPromises.push(p);
+                }
+            });
+
+            // Wait for all to finish (or at least start)
+            Promise.all(detachPromises).then(() => {
+                attachedTabIds.clear();
+                resolve();
+            });
         });
     });
-    // Clear our local cache after a sweep
-    attachedTabIds.clear();
 }
 
 // -----------------------------------------------------------------------------

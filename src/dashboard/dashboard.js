@@ -49,6 +49,11 @@ function initMap() {
     }).addTo(map);
 
     map.on('click', onMapClick);
+
+    // FIX: Leaflet sometimes renders 0x0 in Popups. Force update after short delay.
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 100);
 }
 
 function onMapClick(e) {
