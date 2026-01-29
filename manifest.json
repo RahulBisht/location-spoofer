@@ -1,0 +1,28 @@
+{
+  "name": "StealthGeo",
+  "version": "1.0",
+  "manifest_version": 3,
+  "description": "Undetectable geolocation spoofing using debugger protocols.",
+  "permissions": [
+    "debugger",
+    "geolocation",
+    "storage",
+    "scripting",
+    "alarms"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "src/background/background.js"
+  },
+  "action": {
+    "default_title": "StealthGeo",
+    "default_popup": "src/dashboard/dashboard.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

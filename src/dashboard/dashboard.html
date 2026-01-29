@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StealthGeo Dashboard</title>
+    <link rel="stylesheet" href="../../lib/leaflet.css" />
+    <link rel="stylesheet" href="dashboard.css" />
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 780px;
+            height: 580px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #toolbar {
+            padding: 10px 20px;
+            background: #1e1e1e;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        #logo {
+            font-weight: bold;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        #btn-activate {
+            background: #2ecc71;
+            color: white;
+        }
+
+        #btn-activate.active {
+            background: #e74c3c;
+            /* Red for Stop */
+        }
+
+        #status-bar {
+            padding: 5px 20px;
+            background: #333;
+            color: #aaa;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #map {
+            flex: 1;
+            width: 100%;
+            background: #242f3e;
+        }
+
+        .overlay-panel {
+            position: absolute;
+            top: 70px;
+            left: 20px;
+            background: rgba(30, 30, 30, 0.9);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 999;
+            width: 300px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .panel-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .info-value {
+            font-family: monospace;
+            color: #64b5f6;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div id="toolbar">
+            <div id="logo">
+                <img src="../../icons/icon48.png" height="24" />
+                StealthGeo
+            </div>
+            <div id="controls">
+                <button id="btn-ip-sync" title="Sync GPS with your public IP location">Sync with IP</button>
+                <button id="btn-activate">Start Spoofing</button>
+            </div>
+        </div>
+
+        <div id="map"></div>
+
+        <div class="overlay-panel">
+            <div class="panel-header">Status</div>
+            <div class="info-row">
+                <span>Selected Lat:</span>
+                <span class="info-value" id="disp-lat">0.0000</span>
+            </div>
+            <div class="info-row">
+                <span>Selected Lng:</span>
+                <span class="info-value" id="disp-lng">0.0000</span>
+            </div>
+            <div class="info-row" style="border-top: 1px solid #444; margin-top: 5px; padding-top: 5px;">
+                <span>IP Sync:</span>
+                <span class="info-value" id="disp-ip-sync">OFF</span>
+            </div>
+            <div class="info-row">
+                <span>State:</span>
+                <span class="info-value" id="disp-state">Inactive</span>
+            </div>
+            <div style="margin-top: 10px; font-size: 0.8rem; color: #888;">
+                Click map to set location.
+            </div>
+        </div>
+    </div>
+
+    <script src="../../lib/leaflet.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+
+</html>

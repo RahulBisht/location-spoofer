@@ -1,0 +1,11 @@
+/* Dashboard specific styles */
+#btn-ip-sync {
+    background: #34495e;
+    color: white;
+    margin-right: 10px;
+}
+
+#btn-ip-sync.active {
+    background: #3498db;
+    box-shadow: 0 0 5px #3498db;
+}
