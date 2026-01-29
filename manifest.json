@@ -1,6 +1,6 @@
 {
     "name": "StealthGeo",
-    "version": "1.0",
+    "version": "1.0.0",
     "manifest_version": 3,
     "description": "Developer tool for Undetectable geolocation spoofing using debugger protocols.",
     "permissions": [
@@ -24,8 +24,8 @@
         }
     },
     "icons": {
-        "16": "icons/icon16.png",
-        "48": "icons/icon48.png",
-        "128": "icons/icon128.png"
+        "16": "icons/marker-icon-2x-red.png",
+        "48": "icons/marker-icon-2x-red.png",
+        "128": "icons/marker-icon-2x-red.png"
     }
 }

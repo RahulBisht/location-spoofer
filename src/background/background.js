@@ -33,11 +33,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         fetchTimezoneForCoords(newCoords.lat, newCoords.long).then(tzId => {
             currentCoords = { ...newCoords, timezoneId: tzId };
             chrome.storage.local.set({ coords: currentCoords });
-            console.log('StealthGeo: Updated coords with timezone:', currentCoords);
+            // console.log('StealthGeo: Updated coords with timezone:', currentCoords);
 
             // Force Re-Spoof: Stop then Start
             if (spoofingActive) {
-                console.log('StealthGeo: Modifying location active. Restarting spoof session...');
+                // console.log('StealthGeo: Modifying location active. Restarting spoof session...');
                 detachFromAllTabs().then(() => {
                     // Small delay to ensure browser clears state
                     setTimeout(() => {
@@ -54,10 +54,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         chrome.storage.local.set({ active: spoofingActive });
 
         if (spoofingActive) {
-            console.log('StealthGeo: Activated');
+            // console.log('StealthGeo: Activated');
             applySpoofingToExpectedTabs();
         } else {
-            console.log('StealthGeo: Deactivated');
+            // console.log('StealthGeo: Deactivated');
             detachFromAllTabs();
         }
         sendResponse({ status: spoofingActive ? 'Active' : 'Inactive' });
@@ -160,7 +160,7 @@ function attachAndSpoof(tabId) {
     chrome.debugger.attach(target, "1.3", () => {
         if (chrome.runtime.lastError) {
             if (chrome.runtime.lastError.message.includes("Already attached")) {
-                console.log(`StealthGeo: Tab ${tabId} already attached. Enforcing override.`);
+                // console.log(`StealthGeo: Tab ${tabId} already attached. Enforcing override.`);
                 attachedTabIds.add(tabId); // Mark as ours even if we didn't attach first
                 setGeolocation(target);
             } else {
@@ -341,7 +341,7 @@ function fetchTimezoneForCoords(lat, long) {
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.timezone_id) {
-                        console.log('StealthGeo: Fetched manual timezone from wheretheiss.at:', data.timezone_id);
+                        // console.log('StealthGeo: Fetched manual timezone from wheretheiss.at:', data.timezone_id);
                         return data.timezone_id;
                     }
                     return null;
