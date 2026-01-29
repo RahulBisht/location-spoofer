@@ -290,19 +290,33 @@ function fetchIpLocation() {
 }
 
 function fetchTimezoneForCoords(lat, long) {
-    // Use timeapi.io (free, no key)
+    // Primary: timeapi.io (free, no key)
     return fetch(`https://timeapi.io/api/TimeZone/coordinate?latitude=${lat}&longitude=${long}`)
         .then(res => res.json())
         .then(data => {
             if (data && data.timeZone) {
-                console.log('StealthGeo: Fetched manual timezone:', data.timeZone);
+                console.log('StealthGeo: Fetched manual timezone from timeapi.io:', data.timeZone);
                 return data.timeZone;
             }
-            return null;
+            throw new Error('Invalid response from timeapi.io');
         })
         .catch(err => {
-            console.warn('StealthGeo: Timezone fetch failed:', err);
-            return null;
+            console.warn('StealthGeo: Primary timezone fetch failed, trying fallback to wheretheiss.at', err);
+
+            // Fallback: api.wheretheiss.at (free, no key)
+            return fetch(`https://api.wheretheiss.at/v1/coordinates?latitude=${lat}&longitude=${long}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.timezone_id) {
+                        console.log('StealthGeo: Fetched manual timezone from wheretheiss.at:', data.timezone_id);
+                        return data.timezone_id;
+                    }
+                    return null;
+                })
+                .catch(fallbackErr => {
+                    console.warn('StealthGeo: All timezone fetch providers failed:', fallbackErr);
+                    return null;
+                });
         });
 }
 
