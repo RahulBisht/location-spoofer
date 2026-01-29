@@ -4,8 +4,17 @@ let map;
 let marker;
 let selectedCoords = { lat: 37.7749, long: -122.4194 }; // Default SF
 let isSpoofing = false;
-
 let isIpSyncing = false;
+
+// Custom Red Icon - Google Maps Style
+const redIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
 
 document.addEventListener('DOMContentLoaded', () => {
     initMap();
@@ -14,16 +23,28 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initMap() {
-    // Default to a neutral view (e.g., 0,0 or London/NY). Let's do London.
-    map = L.map('map').setView([51.505, -0.09], 13);
+    // Default to a neutral view (e.g., San Francisco).
+    map = L.map('map', {
+        scrollWheelZoom: true, // Enable zoom with mouse wheel/trackpad
+        doubleClickZoom: true, // Enable zoom with double click
+        dragging: true,        // Enable panning
+        zoomControl: true,     // Show +/- buttons
+        boxZoom: true,         // Shift+drag to zoom
+        keyboard: true,        // Keyboard navigation
+        touchZoom: true,       // Force enable touch/pinch zoom
+        tap: true              // Fix for some touch devices
+    }).setView([51.505, -0.09], 13);
 
-    // Use OpenStreetMap tiles (free, no API key needed for MVP)
-    // For a dark theme, we might want a different tile provider if possible, but OSM is standard.
-    // CartoDB Dark Matter is good for dark mode.
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 20
+    // Force enable handlers just in case
+    map.scrollWheelZoom.enable();
+    map.dragging.enable();
+    map.touchZoom.enable();
+    map.doubleClickZoom.enable();
+
+    // Use OpenStreetMap Standard tiles (Light theme, similar to Google Maps)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
     }).addTo(map);
 
     map.on('click', onMapClick);
@@ -45,8 +66,9 @@ function onMapClick(e) {
 
     if (marker) {
         marker.setLatLng(e.latlng);
+        marker.setIcon(redIcon);
     } else {
-        marker = L.marker(e.latlng).addTo(map);
+        marker = L.marker(e.latlng, { icon: redIcon }).addTo(map);
     }
 
     // Notify background immediately if we want instant updates while active
@@ -81,8 +103,6 @@ function toggleIpSync(forceState) {
     if (typeof forceState === 'boolean') {
         isIpSyncing = forceState;
     }
-    // If called without args (from logic vs click), it might be recursive if not careful, 
-    // but here we used arrow function in listener so logic is clear.
 
     chrome.runtime.sendMessage({
         type: 'TOGGLE_IP_SYNC',
@@ -109,6 +129,7 @@ function loadState() {
         if (response) {
             isSpoofing = response.active;
             isIpSyncing = response.ipSync || false;
+
             if (response.coords && response.coords.lat !== 0) {
                 selectedCoords = response.coords;
                 // Move map to saved location

@@ -25,11 +25,19 @@ function isValidTarget(tab) {
 // -----------------------------------------------------------------------------
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === 'SET_LOCATION') {
-        currentCoords = request.payload;
-        chrome.storage.local.set({ coords: currentCoords });
-        console.log('StealthGeo: New coordinates:', currentCoords);
-        if (spoofingActive) applySpoofingToExpectedTabs();
-        sendResponse({ status: 'Updated' });
+        const newCoords = request.payload;
+        console.log('StealthGeo: Received manual coordinates:', newCoords);
+
+        // Fetch Timezone for these coordinates
+        fetchTimezoneForCoords(newCoords.lat, newCoords.long).then(tzId => {
+            currentCoords = { ...newCoords, timezoneId: tzId };
+            chrome.storage.local.set({ coords: currentCoords });
+            console.log('StealthGeo: Updated coords with timezone:', currentCoords);
+
+            if (spoofingActive) applySpoofingToExpectedTabs();
+        });
+
+        sendResponse({ status: 'Updating' });
 
     } else if (request.type === 'TOGGLE_SPOOFING') {
         spoofingActive = request.payload.active;
@@ -186,23 +194,21 @@ function setGeolocation(target) {
         return;
     }
 
-    // Prevent "Null Island" (0,0) spoofing if uninitialized, unless explicitly intentional?
-    // Usually 0,0 is a bug in initialization.
+    // Prevent "Null Island" (0,0) spoofing if uninitialized
     if (Math.abs(lat) < 0.0001 && Math.abs(lng) < 0.0001) {
         console.warn('StealthGeo: Skipping spoof of 0,0 (Null Island). Defaulting to SF.');
-        // Fallback or return? Let's return to avoid confusion.
         return;
     }
 
     const params = {
         latitude: lat,
         longitude: lng,
-        accuracy: 1
+        accuracy: 20
     };
 
     console.log(`StealthGeo: Sending Emulation.setGeolocationOverride for ${target.tabId} with`, params);
 
-    // Direct set without clear first
+    // 1. Set Geolocation
     chrome.debugger.sendCommand(target, "Emulation.setGeolocationOverride", params, () => {
         if (chrome.runtime.lastError) {
             console.error(`StealthGeo: Override FAILED for ${target.tabId}: ${chrome.runtime.lastError.message}`);
@@ -210,6 +216,18 @@ function setGeolocation(target) {
             console.log(`StealthGeo: Override SUCCESS for ${target.tabId}`);
         }
     });
+
+    // 2. Set Timezone (if available)
+    if (currentCoords.timezoneId) {
+        console.log(`StealthGeo: Setting Timezone ${currentCoords.timezoneId} for ${target.tabId}`);
+        chrome.debugger.sendCommand(target, "Emulation.setTimezoneOverride", { timezoneId: currentCoords.timezoneId }, () => {
+            if (chrome.runtime.lastError) {
+                console.warn(`StealthGeo: Timezone Override FAILED for ${target.tabId}: ${chrome.runtime.lastError.message}`);
+            } else {
+                console.log(`StealthGeo: Timezone Override SUCCESS for ${target.tabId}`);
+            }
+        });
+    }
 }
 
 function detachFromAllTabs() {
@@ -219,10 +237,13 @@ function detachFromAllTabs() {
                 const debugTarget = { targetId: target.id };
                 // Explicitly clear override before detaching to prevent "stuck" location
                 chrome.debugger.sendCommand(debugTarget, "Emulation.clearGeolocationOverride", {}, () => {
-                    chrome.debugger.detach(debugTarget, () => {
-                        if (chrome.runtime.lastError) {
-                            // Ignore errors on detach
-                        }
+                    // Also clear timezone
+                    chrome.debugger.sendCommand(debugTarget, "Emulation.setTimezoneOverride", { timezoneId: "" }, () => {
+                        chrome.debugger.detach(debugTarget, () => {
+                            if (chrome.runtime.lastError) {
+                                // Ignore errors on detach
+                            }
+                        });
                     });
                 });
             }
@@ -241,7 +262,8 @@ function fetchIpLocation() {
         .then(data => {
             if (data && data.success && data.latitude && data.longitude) {
                 console.log('StealthGeo: IP location fetched from ipwho.is');
-                return { lat: data.latitude, long: data.longitude };
+                const tz = data.timezone ? data.timezone.id : null;
+                return { lat: data.latitude, long: data.longitude, timezoneId: tz };
             }
             throw new Error(data.message || 'Invalid response');
         })
@@ -255,7 +277,8 @@ function fetchIpLocation() {
                     // freeipapi returns latitude/longitude
                     if (data && data.latitude && data.longitude) {
                         console.log('StealthGeo: IP location fetched from freeipapi.com');
-                        return { lat: data.latitude, long: data.longitude };
+                        const tz = data.timeZone ? data.timeZone : null;
+                        return { lat: data.latitude, long: data.longitude, timezoneId: tz };
                     }
                     return null;
                 })
@@ -263,6 +286,23 @@ function fetchIpLocation() {
                     console.error('StealthGeo: All IP fetch providers failed.', err);
                     return null;
                 });
+        });
+}
+
+function fetchTimezoneForCoords(lat, long) {
+    // Use timeapi.io (free, no key)
+    return fetch(`https://timeapi.io/api/TimeZone/coordinate?latitude=${lat}&longitude=${long}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data && data.timeZone) {
+                console.log('StealthGeo: Fetched manual timezone:', data.timeZone);
+                return data.timeZone;
+            }
+            return null;
+        })
+        .catch(err => {
+            console.warn('StealthGeo: Timezone fetch failed:', err);
+            return null;
         });
 }
 

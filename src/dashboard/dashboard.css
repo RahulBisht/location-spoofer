@@ -9,3 +9,17 @@
     background: #3498db;
     box-shadow: 0 0 5px #3498db;
 }
+
+/* Enforce Google Maps-style cursor behavior */
+.leaflet-container {
+    cursor: grab !important;
+}
+
+.leaflet-container:active {
+    cursor: grabbing !important;
+}
+
+.leaflet-interactive {
+    cursor: pointer !important;
+    /* Finger for markers */
+}
