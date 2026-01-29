@@ -261,7 +261,7 @@ function fetchIpLocation() {
         .then(response => response.json())
         .then(data => {
             if (data && data.success && data.latitude && data.longitude) {
-                console.log('StealthGeo: IP location fetched from ipwho.is');
+                // console.log('StealthGeo: IP location fetched from ipwho.is');
                 const tz = data.timezone ? data.timezone.id : null;
                 return { lat: data.latitude, long: data.longitude, timezoneId: tz };
             }
@@ -295,7 +295,7 @@ function fetchTimezoneForCoords(lat, long) {
         .then(res => res.json())
         .then(data => {
             if (data && data.timeZone) {
-                console.log('StealthGeo: Fetched manual timezone from timeapi.io:', data.timeZone);
+                // console.log('StealthGeo: Fetched manual timezone from timeapi.io:', data.timeZone);
                 return data.timeZone;
             }
             throw new Error('Invalid response from timeapi.io');

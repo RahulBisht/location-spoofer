@@ -6,9 +6,7 @@
     "permissions": [
         "debugger",
         "geolocation",
-        "storage",
-        "scripting",
-        "alarms"
+        "storage"
     ],
     "host_permissions": [
         "<all_urls>"
