@@ -4,6 +4,7 @@ let spoofingActive = false;
 let ipSyncActive = false;
 let currentCoords = { lat: 37.7749, long: -122.4194 }; // Default to SF (not 0,0)
 const pendingAttachments = new Set();
+const attachedTabIds = new Set(); // Track only tabs WE attached to
 
 // Ensure we don't try to debug these
 const RESTRICTED_PREFIXES = [
@@ -151,6 +152,7 @@ function attachAndSpoof(tabId) {
         if (chrome.runtime.lastError) {
             if (chrome.runtime.lastError.message.includes("Already attached")) {
                 console.log(`StealthGeo: Tab ${tabId} already attached. Enforcing override.`);
+                attachedTabIds.add(tabId); // Mark as ours even if we didn't attach first
                 setGeolocation(target);
             } else {
                 console.warn(`StealthGeo: Attach failed for ${tabId}: ${chrome.runtime.lastError.message}`);
@@ -158,6 +160,7 @@ function attachAndSpoof(tabId) {
             }
         } else {
             console.log(`StealthGeo: Successfully attached to ${tabId}. Granting permissions...`);
+            attachedTabIds.add(tabId);
 
             // 1. Grant Permission
             chrome.debugger.sendCommand(target, "Browser.grantPermissions", {
@@ -231,17 +234,25 @@ function setGeolocation(target) {
 }
 
 function detachFromAllTabs() {
+    // Only detach tabs we know we attached to, or clean up all if forceful
     chrome.debugger.getTargets((targets) => {
         targets.forEach(target => {
-            if (target.attached) {
+            // Check if we are tracking this tab or if it's generally attached (fallback)
+            // Ideally we only detach what we own to avoid fighting other extensions
+            if (target.attached || attachedTabIds.has(target.id)) {
                 const debugTarget = { targetId: target.id };
                 // Explicitly clear override before detaching to prevent "stuck" location
+                // We wrap this in layer of error checking to suppress "not attached" errors
                 chrome.debugger.sendCommand(debugTarget, "Emulation.clearGeolocationOverride", {}, () => {
+                    if (chrome.runtime.lastError) { /* ignore */ }
                     // Also clear timezone
                     chrome.debugger.sendCommand(debugTarget, "Emulation.setTimezoneOverride", { timezoneId: "" }, () => {
+                        if (chrome.runtime.lastError) { /* ignore */ }
                         chrome.debugger.detach(debugTarget, () => {
                             if (chrome.runtime.lastError) {
-                                // Ignore errors on detach
+                                // Ignore "Debugger is not attached" errors specifically
+                            } else {
+                                attachedTabIds.delete(debugTarget.targetId);
                             }
                         });
                     });
@@ -249,6 +260,8 @@ function detachFromAllTabs() {
             }
         });
     });
+    // Clear our local cache after a sweep
+    attachedTabIds.clear();
 }
 
 // -----------------------------------------------------------------------------
