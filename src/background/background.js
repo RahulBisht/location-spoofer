@@ -33,11 +33,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         fetchTimezoneForCoords(newCoords.lat, newCoords.long).then(tzId => {
             currentCoords = { ...newCoords, timezoneId: tzId };
             chrome.storage.local.set({ coords: currentCoords });
-            // console.log('StealthGeo: Updated coords with timezone:', currentCoords);
 
             // Force Re-Spoof: Stop then Start
             if (spoofingActive) {
-                // console.log('StealthGeo: Modifying location active. Restarting spoof session...');
                 detachFromAllTabs().then(() => {
                     // Small delay to ensure browser clears state
                     setTimeout(() => {
@@ -54,10 +52,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         chrome.storage.local.set({ active: spoofingActive });
 
         if (spoofingActive) {
-            // console.log('StealthGeo: Activated');
+            enableWebRTCProtection();
             applySpoofingToExpectedTabs();
         } else {
-            // console.log('StealthGeo: Deactivated');
+            disableWebRTCProtection();
             detachFromAllTabs();
         }
         sendResponse({ status: spoofingActive ? 'Active' : 'Inactive' });
@@ -231,14 +229,49 @@ function setGeolocation(target) {
 
     // 2. Set Timezone (if available)
     if (currentCoords.timezoneId) {
-        console.log(`StealthGeo: Setting Timezone ${currentCoords.timezoneId} for ${target.tabId}`);
         chrome.debugger.sendCommand(target, "Emulation.setTimezoneOverride", { timezoneId: currentCoords.timezoneId }, () => {
-            if (chrome.runtime.lastError) {
-                console.warn(`StealthGeo: Timezone Override FAILED for ${target.tabId}: ${chrome.runtime.lastError.message}`);
-            } else {
-                console.log(`StealthGeo: Timezone Override SUCCESS for ${target.tabId}`);
-            }
+            if (chrome.runtime.lastError) console.warn('Timezone fail');
         });
+    }
+
+    // 3. Set Locale (Anti-Fingerprint) - Infer from Timezone or Default
+    // Simple heuristic: timezone "Asia/Tokyo" -> "ja-JP", "Europe/Paris" -> "fr-FR"
+    // For now, we will use a basic mapping or default to en-US to avoid leaks.
+    // A robust solution would reverse-geocode to get country code.
+    const locale = getLocaleFromTimezone(currentCoords.timezoneId);
+    if (locale) {
+        chrome.debugger.sendCommand(target, "Emulation.setUserAgentOverride", {
+            userAgent: navigator.userAgent, // Keep original UA
+            acceptLanguage: locale,
+            platform: navigator.platform
+        }, () => {
+            if (chrome.runtime.lastError) console.warn('Locale fail');
+        });
+    }
+}
+
+function getLocaleFromTimezone(tz) {
+    if (!tz) return 'en-US';
+    if (tz.startsWith('Asia/Tokyo')) return 'ja-JP';
+    if (tz.startsWith('Europe/Paris')) return 'fr-FR';
+    if (tz.startsWith('Europe/Berlin')) return 'de-DE';
+    if (tz.startsWith('Europe/London')) return 'en-GB';
+    if (tz.startsWith('America/New_York')) return 'en-US';
+    // Add more common mappings if needed, or fetch from API
+    return 'en-US'; // Default fallback
+}
+
+function enableWebRTCProtection() {
+    if (chrome.privacy && chrome.privacy.network && chrome.privacy.network.webRTCIPHandlingPolicy) {
+        chrome.privacy.network.webRTCIPHandlingPolicy.set({
+            value: 'disable_non_proxied_udp'
+        });
+    }
+}
+
+function disableWebRTCProtection() {
+    if (chrome.privacy && chrome.privacy.network && chrome.privacy.network.webRTCIPHandlingPolicy) {
+        chrome.privacy.network.webRTCIPHandlingPolicy.clear({});
     }
 }
 
