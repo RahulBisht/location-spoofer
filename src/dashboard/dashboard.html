@@ -124,7 +124,11 @@
                 <img src="/icons/icon48.png" height="24" />
                 StealthGeo
             </div>
+            <div id="search-bar">
+                <input type="text" id="input-search" placeholder="Search address..." />
+            </div>
             <div id="controls">
+                <button id="btn-locations" title="Manage Saved Locations">📂</button>
                 <button id="btn-ip-sync" title="Sync GPS with your public IP location">Sync with IP</button>
                 <button id="btn-activate">Start Spoofing</button>
             </div>
@@ -146,23 +150,29 @@
                 <span>IP Sync:</span>
                 <span class="info-value" id="disp-ip-sync">OFF</span>
             </div>
-            <span class="info-value" id="disp-state">Inactive</span>
+            <div class="info-row">
+                <span>State:</span>
+                <span class="info-value" id="disp-state">Inactive</span>
+            </div>
+            <div style="margin-top: 10px; font-size: 0.8rem; color: #888;">
+                Click map to set location.
+            </div>
         </div>
 
-        <div class="panel-header" style="margin-top: 15px; border-top: 1px solid #444; padding-top: 10px;">Saved
-            Locations</div>
-        <div id="save-location-form">
-            <input type="text" id="input-loc-name" placeholder="Name (e.g. Home)" />
-            <button id="btn-save-loc">Save</button>
+        <!-- NEW: Sliding Side Panel for Locations -->
+        <div id="locations-side-panel">
+            <div class="panel-header">
+                Saved Locations
+                <span id="btn-close-panel" style="float: right; cursor: pointer; font-size: 1.2rem;">&times;</span>
+            </div>
+            <div id="save-location-form">
+                <input type="text" id="input-loc-name" placeholder="Name (e.g. Home)" />
+                <button id="btn-save-loc">Save</button>
+            </div>
+            <div id="saved-list">
+                <div class="empty-msg">No saved locations</div>
+            </div>
         </div>
-        <div id="saved-list">
-            <!-- Saved items will appear here -->
-            <div class="empty-msg">No saved locations</div>
-        </div>
-        <div style="margin-top: 10px; font-size: 0.8rem; color: #888;">
-            Click map to set location.
-        </div>
-    </div>
     </div>
 
     <script src="../lib/leaflet.js"></script>

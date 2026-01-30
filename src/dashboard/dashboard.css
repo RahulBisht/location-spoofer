@@ -98,3 +98,80 @@
     text-align: center;
     padding: 10px 0;
 }
+
+/* Search Bar Styles */
+#search-bar {
+    flex: 1;
+    margin: 0 20px;
+    display: flex;
+    justify-content: center;
+}
+
+#input-search {
+    width: 100%;
+    max-width: 400px;
+    background: #333;
+    border: 1px solid #555;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    outline: none;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+}
+
+#input-search:focus {
+    border-color: #64b5f6;
+}
+
+/* Side Panel Styles - NEW */
+#locations-side-panel {
+    position: fixed;
+    top: 60px;
+    /* Below toolbar */
+    right: -320px;
+    /* Hidden off-screen */
+    bottom: 0;
+    width: 300px;
+    background: #1e1e1e;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    transition: right 0.3s ease-in-out;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #333;
+    color: #eeeeee;
+    /* Ensure text is light */
+}
+
+#locations-side-panel.open {
+    right: 0;
+}
+
+/* Adjust Saved List to fill available space in panel */
+#locations-side-panel #saved-list {
+    flex: 1;
+    max-height: none;
+    /* Override previous */
+    margin-top: 10px;
+}
+
+/* Toggle Button Style */
+#btn-locations {
+    background: #34495e;
+    color: white;
+    margin-right: 10px;
+}
+
+#btn-locations:hover {
+    background: #4a6278;
+}
+
+#btn-close-panel {
+    color: #aaa;
+}
+
+#btn-close-panel:hover {
+    color: white;
+}

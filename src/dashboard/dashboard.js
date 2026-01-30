@@ -21,7 +21,6 @@ const redIcon = new L.Icon({
 document.addEventListener('DOMContentLoaded', () => {
     initMap();
     initControls();
-    initControls();
     loadState();
     loadSavedLocations();
 });
@@ -95,6 +94,34 @@ function initControls() {
     if (btnIpSync) {
         btnIpSync.addEventListener('click', () => toggleIpSync(!isIpSyncing));
     }
+
+    // Saved Locations Controls
+    const btnSave = document.getElementById('btn-save-loc');
+    if (btnSave) btnSave.addEventListener('click', saveLocation);
+
+    const inputName = document.getElementById('input-loc-name');
+    if (inputName) {
+        inputName.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') saveLocation();
+        });
+    }
+
+    // Search Controls
+    const inputSearch = document.getElementById('input-search');
+    if (inputSearch) {
+        inputSearch.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchAddress(inputSearch.value);
+        });
+    }
+
+    // Sidebar Toggle
+    document.getElementById('btn-locations').addEventListener('click', toggleSidePanel);
+    document.getElementById('btn-close-panel').addEventListener('click', toggleSidePanel);
+}
+
+function toggleSidePanel() {
+    const panel = document.getElementById('locations-side-panel');
+    panel.classList.toggle('open');
 }
 
 function toggleSpoofing() {
@@ -185,8 +212,6 @@ function updateUIState() {
         stateDisp.style.color = '#64b5f6';
     }
 }
-    }
-}
 
 // -----------------------------------------------------------------------------
 // Saved Locations Logic
@@ -221,6 +246,7 @@ function saveLocation() {
 function loadSavedLocations() {
     chrome.storage.local.get(['savedLocations'], (result) => {
         const locations = result.savedLocations || [];
+        // NOTE: The saved-list ID is the same, now inside the sidebar
         const container = document.getElementById('saved-list');
         container.innerHTML = ''; // Clear current list
 
@@ -297,4 +323,52 @@ function loadLocation(coords) {
             payload: selectedCoords
         });
     }
+}
+
+// -----------------------------------------------------------------------------
+// Address Search Logic
+// -----------------------------------------------------------------------------
+
+function searchAddress(query) {
+    if (!query || query.trim() === '') return;
+
+    // Show loading state (optional UI enhancement)
+    const searchInput = document.getElementById('input-search');
+    const originalPlaceholder = searchInput.placeholder;
+    searchInput.placeholder = 'Searching...';
+    searchInput.disabled = true;
+
+    // Use OpenStreetMap Nominatim API
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.length > 0) {
+                // Take the first result
+                const result = data[0];
+                const lat = parseFloat(result.lat);
+                const lon = parseFloat(result.lon);
+
+                // Auto-fill Saved Location Name from Search Result
+                const nameInput = document.getElementById('input-loc-name');
+                if (nameInput && result.display_name) {
+                    // Use the first part of the address (e.g., "Eiffel Tower") to keep it short
+                    nameInput.value = result.display_name.split(',')[0];
+                }
+
+                loadLocation({ lat: lat, long: lon });
+            } else {
+                alert('Location not found. Please try a different query.');
+            }
+        })
+        .catch(err => {
+            console.error('Search Error:', err);
+            alert('Error searching for address.');
+        })
+        .finally(() => {
+            // Restore UI
+            searchInput.value = '';
+            searchInput.placeholder = originalPlaceholder;
+            searchInput.disabled = false;
+            searchInput.focus();
+        });
 }
