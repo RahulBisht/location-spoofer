@@ -337,32 +337,51 @@ function loadLocation(coords) {
 function searchAddress(query) {
     if (!query || query.trim() === '') return;
 
-    // Show loading state (optional UI enhancement)
     const searchInput = document.getElementById('input-search');
-    const originalPlaceholder = searchInput.placeholder;
-    searchInput.placeholder = 'Searching...';
+    const resultsContainer = document.getElementById('search-results');
+
+    // UI Loading State
+    searchInput.classList.add('loading');
     searchInput.disabled = true;
+    resultsContainer.innerHTML = ''; // Clear previous
+    resultsContainer.classList.remove('visible');
 
     // Use OpenStreetMap Nominatim API
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`)
         .then(response => response.json())
         .then(data => {
             if (data && data.length > 0) {
-                // Take the first result
-                const result = data[0];
-                const lat = parseFloat(result.lat);
-                const lon = parseFloat(result.lon);
+                // Populate Dropdown
+                data.forEach(result => {
+                    const item = document.createElement('div');
+                    item.className = 'search-result-item';
+                    item.textContent = result.display_name; // Full address
 
-                // Auto-fill Saved Location Name from Search Result
-                const nameInput = document.getElementById('input-loc-name');
-                if (nameInput && result.display_name) {
-                    // Use the first part of the address (e.g., "Eiffel Tower") to keep it short
-                    nameInput.value = result.display_name.split(',')[0];
-                }
+                    item.addEventListener('click', () => {
+                        // On Selection
+                        const lat = parseFloat(result.lat);
+                        const lon = parseFloat(result.lon);
 
-                loadLocation({ lat: lat, long: lon });
+                        // Auto-fill Saved Name (Short)
+                        const nameInput = document.getElementById('input-loc-name');
+                        if (nameInput) {
+                            nameInput.value = result.display_name.split(',')[0];
+                        }
+
+                        // Load Location
+                        loadLocation({ lat: lat, long: lon });
+
+                        // Cleanup
+                        resultsContainer.classList.remove('visible');
+                        searchInput.value = '';
+                    });
+
+                    resultsContainer.appendChild(item);
+                });
+
+                resultsContainer.classList.add('visible');
             } else {
-                alert('Location not found. Please try a different query.');
+                alert('Location not found.');
             }
         })
         .catch(err => {
@@ -370,10 +389,21 @@ function searchAddress(query) {
             alert('Error searching for address.');
         })
         .finally(() => {
-            // Restore UI
-            searchInput.value = '';
-            searchInput.placeholder = originalPlaceholder;
+            // Restore Input
+            searchInput.classList.remove('loading');
             searchInput.disabled = false;
             searchInput.focus();
         });
 }
+
+// Close Dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const resultsContainer = document.getElementById('search-results');
+    const searchInput = document.getElementById('input-search');
+
+    if (resultsContainer && resultsContainer.classList.contains('visible')) {
+        if (!resultsContainer.contains(e.target) && e.target !== searchInput) {
+            resultsContainer.classList.remove('visible');
+        }
+    }
+});
