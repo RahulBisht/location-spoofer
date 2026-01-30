@@ -2,7 +2,7 @@
     "name": "StealthGeo",
     "version": "1.0.0",
     "manifest_version": 3,
-    "description": "Developer tool for Undetectable geolocation spoofing using debugger protocols.",
+    "description": "Change your browser location instantly. Spoofs GPS, Timezone, and Locale using advanced Debugging protocols for maximum stealth.",
     "permissions": [
         "debugger",
         "geolocation",

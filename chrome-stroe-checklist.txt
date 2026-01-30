@@ -1,0 +1,31 @@
+Chrome Web Store - Privacy & Permissions Justifications
+Copy and paste these answers directly into the "Privacy practices" tab of your Store Listing.
+
+1. Single Purpose Description
+Description: "StealthGeo allows developers and users to simulate their browser's geolocation purely for testing and privacy purposes. It provides a dashboard to select a fake location, which is then applied to the browser using standard debugging protocols."
+
+2. Permission Justifications
+🎯 Debugger Permission
+Justification: "The 'debugger' permission is the core of this extension's functionality. It is used exclusively to access the Emulation.setGeolocationOverride and Emulation.setTimezoneOverride methods via the Chrome DevTools Protocol. This allows the extension to reliably simulate location changes at the browser engine level, which is necessary for the 'undetectable' spoofing feature described in our listing. We do NOT use this permission to inspect network traffic, read DOM elements, or debugging script execution."
+
+🌍 Geolocation Permission
+Justification: "The 'geolocation' permission is used solely to display the user's current 'real' location on the dashboard map if they request it, and to verify that the spoofing overrides are being applied correctly. We do not store or transmit the user's real location to any external servers."
+
+🌐 Host Permission (<all_urls>)
+Justification: "The extension needs to attach the debugger to any tab where the user wants to spoof their location. Since a user might need to test location-based features on any website (e.g., Google Maps, Uber, Local News, etc.), we require access to <all_urls> to function universally. Without this, the extension would not work on new or random websites the user visits."
+
+💾 Storage Permission
+Justification: "We use chrome.storage.local to save the user's preferred spoofed coordinates and settings (e.g., 'Last Spoofed Location: London') so they persist between browser restarts. No personal data or browsing history is stored."
+
+🚫 Remote Code Justification
+Justification: "We do NOT use any remote code. All external libraries (such as Leaflet.js and its CSS) have been downloaded and bundled locally within the extension package (lib/ folder). The extension is fully self-contained and complies with Manifest V3 security requirements."
+
+3. Data Usage Certification
+Compliance Statement: "I certify that this extension:
+
+Does NOT sell user data.
+Does NOT use data for creditworthiness or lending purposes.
+Does NOT use data for personalized advertising.
+Only transfers data (Timezone/IP lookups) to standard third-party APIs (ipwho.is, timeapi.io) purely for the functional purpose of fetching location metadata, as requested by the user."
+4. Account Verification
+Note: You must personally verify your email address in the 'Account' tab of the Developer Dashboard before effective publishing.

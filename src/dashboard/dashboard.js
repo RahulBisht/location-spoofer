@@ -21,7 +21,9 @@ const redIcon = new L.Icon({
 document.addEventListener('DOMContentLoaded', () => {
     initMap();
     initControls();
+    initControls();
     loadState();
+    loadSavedLocations();
 });
 
 function initMap() {
@@ -181,5 +183,118 @@ function updateUIState() {
         btn.classList.remove('active');
         stateDisp.textContent = 'Inactive';
         stateDisp.style.color = '#64b5f6';
+    }
+}
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Saved Locations Logic
+// -----------------------------------------------------------------------------
+
+function saveLocation() {
+    const nameInput = document.getElementById('input-loc-name');
+    const name = nameInput.value.trim();
+
+    if (!name) {
+        alert('Please enter a name for this location.');
+        return;
+    }
+
+    const newLoc = {
+        id: Date.now().toString(),
+        name: name,
+        coords: selectedCoords
+    };
+
+    chrome.storage.local.get(['savedLocations'], (result) => {
+        const locations = result.savedLocations || [];
+        locations.push(newLoc);
+
+        chrome.storage.local.set({ savedLocations: locations }, () => {
+            nameInput.value = ''; // Clear input
+            loadSavedLocations(); // Refresh list
+        });
+    });
+}
+
+function loadSavedLocations() {
+    chrome.storage.local.get(['savedLocations'], (result) => {
+        const locations = result.savedLocations || [];
+        const container = document.getElementById('saved-list');
+        container.innerHTML = ''; // Clear current list
+
+        if (locations.length === 0) {
+            container.innerHTML = '<div class="empty-msg">No saved locations</div>';
+            return;
+        }
+
+        locations.forEach(loc => {
+            const el = document.createElement('div');
+            el.className = 'saved-item';
+
+            // Name (Clickable to load)
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'saved-name';
+            nameSpan.textContent = loc.name;
+            nameSpan.title = `Load ${loc.name} (${loc.coords.lat.toFixed(2)}, ${loc.coords.long.toFixed(2)})`;
+            nameSpan.addEventListener('click', () => loadLocation(loc.coords));
+
+            // Delete Button
+            const delBtn = document.createElement('button');
+            delBtn.className = 'btn-delete-loc';
+            delBtn.innerHTML = '&times;';
+            delBtn.title = 'Delete';
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent clicking row
+                deleteLocation(loc.id);
+            });
+
+            el.appendChild(nameSpan);
+            el.appendChild(delBtn);
+            container.appendChild(el);
+        });
+    });
+}
+
+function deleteLocation(id) {
+    chrome.storage.local.get(['savedLocations'], (result) => {
+        let locations = result.savedLocations || [];
+        locations = locations.filter(loc => loc.id !== id);
+
+        chrome.storage.local.set({ savedLocations: locations }, () => {
+            loadSavedLocations();
+        });
+    });
+}
+
+function loadLocation(coords) {
+    selectedCoords = coords;
+
+    // Update Map
+    if (map) {
+        map.setView([selectedCoords.lat, selectedCoords.long], 13);
+        if (marker) {
+            marker.setLatLng([selectedCoords.lat, selectedCoords.long]);
+            marker.setIcon(redIcon);
+        } else {
+            marker = L.marker([selectedCoords.lat, selectedCoords.long], { icon: redIcon }).addTo(map);
+        }
+    }
+
+    // Disable IP Sync if active (since we are setting manual)
+    if (isIpSyncing) {
+        isIpSyncing = false;
+        toggleIpSync(false);
+    }
+
+    updateDisplay();
+
+    // If spoofing is active, apply immediately
+    if (isSpoofing) {
+        chrome.runtime.sendMessage({
+            type: 'SET_LOCATION',
+            payload: selectedCoords
+        });
     }
 }
