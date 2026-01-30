@@ -124,8 +124,10 @@
                 <img src="/icons/icon48.png" height="24" />
                 StealthGeo
             </div>
-            <div id="search-bar" style="position: relative;">
-                <input type="text" id="input-search" placeholder="Search address..." />
+            <div id="search-bar"
+                style="position: relative; display: flex; flex-direction: column; align-items: center;">
+                <input type="text" id="input-search" placeholder="Search..." />
+                <div class="search-hint">Try e.g. "40.71, -74.00"</div>
                 <div id="search-results"></div>
             </div>
             <div id="controls">
@@ -146,6 +148,11 @@
             <div class="info-row">
                 <span>Selected Lng:</span>
                 <span class="info-value" id="disp-lng">0.0000</span>
+            </div>
+            <div class="info-row">
+                <span>Address:</span>
+                <span class="info-value" id="disp-address"
+                    style="font-size: 0.8rem; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">-</span>
             </div>
             <div class="info-row" style="border-top: 1px solid #444; margin-top: 5px; padding-top: 5px;">
                 <span>IP Sync:</span>

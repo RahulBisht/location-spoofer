@@ -81,6 +81,7 @@ function onMapClick(e) {
     popupContent.querySelector('#btn-confirm-loc').addEventListener('click', () => {
         map.closePopup();
         loadLocation({ lat, long: lng });
+        fetchAddress(lat, lng); // Fetch address on map click
     });
 
     // Show Popup
@@ -198,6 +199,12 @@ function updateDisplay() {
         ipSyncDisp.textContent = isIpSyncing ? 'ON' : 'OFF';
         ipSyncDisp.style.color = isIpSyncing ? '#2ecc71' : '#888';
     }
+
+    const addrDisp = document.getElementById('disp-address');
+    if (addrDisp) {
+        addrDisp.textContent = selectedCoords.address || 'Fetching...';
+        addrDisp.title = selectedCoords.address || '';
+    }
 }
 
 function updateUIState() {
@@ -298,8 +305,16 @@ function deleteLocation(id) {
     });
 }
 
-function loadLocation(coords) {
+function loadLocation(coords, addressHint = null) {
     selectedCoords = coords;
+
+    // Use hint if provided, otherwise reset to fetching
+    if (addressHint) {
+        selectedCoords.address = addressHint;
+    } else if (!selectedCoords.address) {
+        selectedCoords.address = 'Loading...';
+        fetchAddress(coords.lat, coords.long);
+    }
 
     // Update Map
     if (map) {
@@ -345,6 +360,28 @@ function searchAddress(query) {
     resultsContainer.innerHTML = ''; // Clear previous
     resultsContainer.classList.remove('visible');
 
+    // CHECK: Is input a Lat, Long pair? (e.g. "40.7128, -74.0060")
+    // Regex allows spaces, negative signs, decimal points.
+    const coordMatch = query.match(/^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$/);
+
+    if (coordMatch) {
+        const lat = parseFloat(coordMatch[1]);
+        const lon = parseFloat(coordMatch[3]);
+
+        // Validate range
+        if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+            // Restore UI immediately
+            searchInput.classList.remove('loading');
+            searchInput.disabled = false;
+            searchInput.value = '';
+
+            // Teleport
+            loadLocation({ lat: lat, long: lon });
+            fetchAddress(lat, lon); // Get name for these coords
+            return;
+        }
+    }
+
     // Use OpenStreetMap Nominatim API
     fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`)
         .then(response => response.json())
@@ -367,8 +404,8 @@ function searchAddress(query) {
                             nameInput.value = result.display_name.split(',')[0];
                         }
 
-                        // Load Location
-                        loadLocation({ lat: lat, long: lon });
+                        // Load Location with Address Hint
+                        loadLocation({ lat: lat, long: lon }, result.display_name);
 
                         // Cleanup
                         resultsContainer.classList.remove('visible');
@@ -406,3 +443,49 @@ document.addEventListener('click', (e) => {
         }
     }
 });
+
+// Address Cache to prevent redundant API calls
+let addressCache = {
+    lat: null,
+    long: null,
+    address: null
+};
+
+function fetchAddress(lat, lng) {
+    // Check Cache (Threshold ~11 meters)
+    if (addressCache.address &&
+        addressCache.lat !== null &&
+        Math.abs(lat - addressCache.lat) < 0.0001 &&
+        Math.abs(lng - addressCache.long) < 0.0001) {
+
+        selectedCoords.address = addressCache.address;
+        updateDisplay();
+        return;
+    }
+
+    // Debounce or simple fetch? Simple for now.
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.display_name) {
+                selectedCoords.address = data.display_name;
+
+                // Update Cache
+                addressCache = {
+                    lat: lat,
+                    long: lng,
+                    address: data.display_name
+                };
+
+                updateDisplay();
+            } else {
+                selectedCoords.address = 'Unknown Location';
+                updateDisplay();
+            }
+        })
+        .catch(err => {
+            console.warn('Reverse Geocode Failed:', err);
+            selectedCoords.address = 'Error fetching address';
+            updateDisplay();
+        });
+}

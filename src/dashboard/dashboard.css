@@ -228,3 +228,23 @@
 #input-search.loading {
     border-color: #f1c40f;
 }
+
+/* Search Hint Text - Refined (Inside Input) */
+.search-hint {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    text-align: right;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+    transition: opacity 0.2s;
+    margin: 0;
+    white-space: nowrap;
+}
+
+/* Hide hint when user types */
+#input-search:not(:placeholder-shown)+.search-hint {
+    opacity: 0;
+}
