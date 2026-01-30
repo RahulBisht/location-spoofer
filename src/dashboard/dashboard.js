@@ -62,28 +62,33 @@ function onMapClick(e) {
     const lat = e.latlng.lat;
     const lng = e.latlng.lng;
 
-    selectedCoords = { lat, long: lng };
+    const popupContent = document.createElement('div');
+    popupContent.innerHTML = `
+        <div style="text-align: center;">
+            <p style="margin: 0 0 8px 0; font-weight: bold; color: #333;">Set Location Here?</p>
+            <button id="btn-confirm-loc" style="
+                background: #64b5f6; 
+                color: #1e1e1e; 
+                border: none; 
+                padding: 6px 12px; 
+                border-radius: 4px; 
+                cursor: pointer; 
+                font-weight: bold;
+            ">Teleport</button>
+        </div>
+    `;
 
-    // If user clicks map, disable IP Sync mode
-    if (isIpSyncing) {
-        isIpSyncing = false;
-        toggleIpSync(false); // Update background
-    }
-
-    updateDisplay();
-
-    if (marker) {
-        marker.setLatLng(e.latlng);
-        marker.setIcon(redIcon);
-    } else {
-        marker = L.marker(e.latlng, { icon: redIcon }).addTo(map);
-    }
-
-    // Notify background immediately if we want instant updates while active
-    chrome.runtime.sendMessage({
-        type: 'SET_LOCATION',
-        payload: selectedCoords
+    // Handle Confirm Click
+    popupContent.querySelector('#btn-confirm-loc').addEventListener('click', () => {
+        map.closePopup();
+        loadLocation({ lat, long: lng });
     });
+
+    // Show Popup
+    L.popup()
+        .setLatLng(e.latlng)
+        .setContent(popupContent)
+        .openOn(map);
 }
 
 function initControls() {
